@@ -1,0 +1,27 @@
+# Development protections for sensitive assets.
+# To disable the directory blocks in production, ensure APP_ENV != development
+# in the web server environment.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Always block access to environment configuration files
+    RewriteRule (^|/)\.env$ - [F,L]
+
+    # When APP_ENV=development, hide local asset and storage directories
+    RewriteCond %{ENV:APP_ENV} ^development$ [NC]
+    RewriteRule ^(images|uploads|data)/ - [F,L]
+</IfModule>
+
+# Fallback protection for .env files if mod_rewrite is unavailable
+<IfModule mod_authz_core.c>
+    <Files ".env">
+        Require all denied
+    </Files>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <Files ".env">
+        Order allow,deny
+        Deny from all
+    </Files>
+</IfModule>
