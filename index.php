@@ -5,8 +5,14 @@ declare(strict_types=1);
 session_start();
 mb_internal_encoding('UTF-8');
 
-// ⚠️ СМЕНИТЕ ЭТОТ ПАРОЛЬ!
-const ADMIN_PASSWORD = 'altekov2025';
+load_env(__DIR__ . '/.env');
+
+$adminPassword = getenv('ADM_PASS');
+if ($adminPassword === false || $adminPassword === '') {
+    http_response_code(500);
+    exit('Admin password is not configured');
+}
+define('ADMIN_PASSWORD', $adminPassword);
 
 const SITE_TITLE       = 'Публичная веб‑страница писателя Ғалымжана Алтекова';
 const SITE_TAGLINE_RU  = 'Писатель · очерки · проза · исследования';
@@ -21,6 +27,38 @@ const MAX_PDF_BYTES  = 60 * 1024 * 1024; // 60 МБ
 const MAX_IMG_BYTES  = 15 * 1024 * 1024; // 15 МБ
 
 // ------------------------------- УТИЛИТЫ --------------------------------------
+function load_env(string $path): void {
+    if (!is_file($path) || !is_readable($path)) return;
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines === false) return;
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#') continue;
+        if (strpos($line, '=') === false) continue;
+
+        [$rawKey, $rawValue] = explode('=', $line, 2);
+        $key = trim($rawKey);
+        if ($key === '') continue;
+
+        $value = trim($rawValue);
+        if ($value !== '' && (
+            ($value[0] === '"' && substr($value, -1) === '"') ||
+            ($value[0] === "'" && substr($value, -1) === "'")
+        )) {
+            $value = substr($value, 1, -1);
+        }
+
+        if (!array_key_exists($key, $_ENV)) {
+            $_ENV[$key] = $value;
+        }
+        if (!array_key_exists($key, $_SERVER)) {
+            $_SERVER[$key] = $value;
+        }
+        putenv($key . '=' . $value);
+    }
+}
+
 function ensure_dirs(): void {
     $dirs = [
         UPLOADS_DIR,
